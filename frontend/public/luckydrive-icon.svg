@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="ldTitle ldDesc">
+  <title id="ldTitle">LuckyDrive</title>
+  <desc id="ldDesc">Square LuckyDrive icon: dark navy tile with gold car and lucky star</desc>
+
+  <!-- Tile background -->
+  <rect width="512" height="512" rx="96" fill="#1a1a2e"/>
+
+  <!-- Inner ambient circle -->
+  <circle cx="256" cy="256" r="180" fill="#16213e" opacity="0.85"/>
+
+  <!-- Lucky star (outer ghost) -->
+  <polygon points="256,72 280,148 360,148 295,194 320,272 256,224 192,272 217,194 152,148 232,148"
+           fill="#f0a500" opacity="0.18"/>
+  <!-- Lucky star (inner) -->
+  <polygon points="256,84 276,148 344,148 290,188 312,254 256,216 200,254 222,188 168,148 236,148"
+           fill="#f0a500" opacity="0.32"/>
+
+  <!-- Car silhouette -->
+  <g transform="translate(96, 230)">
+    <!-- Body -->
+    <rect x="10" y="56" width="300" height="78" rx="14" fill="#f0a500"/>
+    <!-- Cabin -->
+    <path d="M64 56 Q80 12 150 8 Q220 4 256 56 Z" fill="#f0a500"/>
+    <!-- Window glass -->
+    <path d="M80 52 Q92 22 148 18 Q198 16 220 52 Z" fill="#1a1a2e" opacity="0.78"/>
+    <!-- Front wheel -->
+    <circle cx="80" cy="138" r="32" fill="#1a1a2e"/>
+    <circle cx="80" cy="138" r="18" fill="#f0a500"/>
+    <circle cx="80" cy="138" r="7"  fill="#1a1a2e"/>
+    <!-- Rear wheel -->
+    <circle cx="240" cy="138" r="32" fill="#1a1a2e"/>
+    <circle cx="240" cy="138" r="18" fill="#f0a500"/>
+    <circle cx="240" cy="138" r="7"  fill="#1a1a2e"/>
+    <!-- Headlight -->
+    <rect x="298" y="72" width="22" height="20" rx="4" fill="#ffffff" opacity="0.92"/>
+    <!-- Speed lines -->
+    <line x1="-30" y1="78"  x2="6"   y2="78"  stroke="#f0a500" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
+    <line x1="-46" y1="92"  x2="0"   y2="92"  stroke="#f0a500" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+    <line x1="-32" y1="106" x2="2"   y2="106" stroke="#f0a500" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+  </g>
+</svg>

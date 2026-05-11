@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: #12121e;
+    color: #e3e0f2;
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: #f0a500;
+    color: #12121e;
+  }
+
+  /* Scrollbar — dark theme */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #12121e;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #292936;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #343341;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Noto Serif', Georgia, serif;
+  }
+
+  .font-label-bold {
+    font-family: 'Manrope', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Surface / card recipe — applied via @apply where convenient */
+  .ld-card {
+    @apply bg-dark-100 border border-outline-variant/30 rounded-xl shadow-card p-6;
+  }
+
+  .ld-container {
+    @apply mx-auto w-full max-w-container px-4 md:px-6;
+  }
+}
+
+/* Soften AntD's default focus ring to use the gold token */
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper-focused {
+  border-color: #f0a500 !important;
+  box-shadow: 0 0 0 2px rgba(240, 165, 0, 0.18) !important;
+}
