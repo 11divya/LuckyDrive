@@ -19,6 +19,19 @@ export function formatDrawDate(d) {
   });
 }
 
+export function formatAnnouncementDate(d) {
+  if (!d) return '—';
+  const date = new Date(d);
+  return date.toLocaleDateString('en-ZA', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function formatPercent(num, denom) {
   if (!denom) return '0%';
   return `${Math.round((num / denom) * 100)}%`;

@@ -13,6 +13,8 @@ const carsRoutes = require('./routes/cars.routes');
 const ticketsRoutes = require('./routes/tickets.routes');
 const drawsRoutes = require('./routes/draws.routes');
 const adminRoutes = require('./routes/admin.routes');
+const settingsRoutes = require('./routes/settings.routes');
+const paymentsRoutes = require('./routes/payments.routes');
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 5000;
@@ -38,6 +40,8 @@ app.use('/api/cars', carsRoutes);
 app.use('/api/tickets', ticketsRoutes);
 app.use('/api/draws', drawsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/payments', paymentsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

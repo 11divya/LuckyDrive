@@ -15,6 +15,10 @@ const drawSchema = new mongoose.Schema(
       index: true,
     },
     notes: { type: String },
+    /** Shown on Winners page when set (overrides linked user name). */
+    winnerDisplayName: { type: String, trim: true },
+    /** Winning token code when not linked to a Ticket document. */
+    publicTicketCode: { type: String, trim: true, uppercase: true },
   },
   { timestamps: true }
 );

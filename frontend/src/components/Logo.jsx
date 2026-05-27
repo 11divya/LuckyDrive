@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 
 // Renders the brand artwork from /public/luckydrive-logo.svg.
-// The SVG is the wide 680x260 mark (icon + LUCKYDRIVE wordmark + tagline) on
-// its own dark-navy tile, designed to sit on the dark app surfaces.
+// The SVG is the wide 680x260 mark (white car, LUCKYDRIVE wordmark + tagline)
+// on its own dark-navy tile, designed to sit on the dark app surfaces.
 
 // Single fixed height for all surfaces per design request.
 const LOGO_HEIGHT_PX = 89;

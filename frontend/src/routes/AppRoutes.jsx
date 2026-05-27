@@ -10,6 +10,9 @@ import LiveDraws from '../pages/public/LiveDraws/LiveDraws';
 import Winners from '../pages/public/Winners/Winners';
 import Login from '../pages/public/Login/Login';
 import ManageInventory from '../pages/admin/ManageInventory/ManageInventory';
+import AdminSettings from '../pages/admin/Settings/AdminSettings';
+import AdminWinners from '../pages/admin/Winners/AdminWinners';
+import AdminCustomers from '../pages/admin/Customers/AdminCustomers';
 
 export default function AppRoutes() {
   return (
@@ -30,6 +33,9 @@ export default function AppRoutes() {
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<Navigate to="/admin/inventory" replace />} />
           <Route path="/admin/inventory" element={<ManageInventory />} />
+          <Route path="/admin/winners" element={<AdminWinners />} />
+          <Route path="/admin/customers" element={<AdminCustomers />} />
+          <Route path="/admin/settings" element={<AdminSettings />} />
         </Route>
       </Route>
 

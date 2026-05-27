@@ -4,10 +4,12 @@ import SalesProgress from './SalesProgress';
 import CountdownTimer from './CountdownTimer';
 import Button from './Button';
 import { formatZAR } from '../utils/format';
+import { isTicketSalesOpen } from '../utils/ticketSales';
 
 export default function CarCard({ car }) {
   const navigate = useNavigate();
   const showClosingSoon = car.status === 'closing_soon';
+  const salesOpen = isTicketSalesOpen(car);
 
   return (
     <article className="ld-card !p-0 overflow-hidden flex flex-col hover:shadow-card-hover transition-shadow">
@@ -42,8 +44,12 @@ export default function CarCard({ car }) {
             <span className="font-display font-bold text-xl">{formatZAR(car.ticketPrice, { compact: false })}</span>
             <span className="text-sm text-text-muted"> / ticket</span>
           </div>
-          <Button size="middle" onClick={() => navigate(`/cars/${car.id}`)}>
-            Enter Now
+          <Button
+            size="middle"
+            variant={salesOpen ? 'primary' : 'secondary'}
+            onClick={() => navigate(`/cars/${car.id}`)}
+          >
+            {salesOpen ? 'Enter Now' : 'View draw'}
           </Button>
         </div>
       </div>

@@ -5,9 +5,12 @@ import { Trophy, CalendarClock } from 'lucide-react';
 import WinnerCard from './WinnerCard';
 import UpcomingDrawCard from './UpcomingDrawCard';
 import { fetchDraws } from './Winners.helper';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function Winners() {
+  const { user } = useAuth();
   const [data, setData] = useState(null);
+  const isAdmin = user?.role === 'admin';
 
   const reload = async () => {
     const fresh = await fetchDraws();
@@ -82,8 +85,9 @@ export default function Winners() {
             <div>
               <h3 className="font-display font-semibold text-xl">No winners yet</h3>
               <p className="text-text-muted mt-1 max-w-md">
-                The first draw is on its way — when it runs, the winning token will be
-                revealed right here alongside every entered token number.
+                {isAdmin
+                  ? 'Go to Admin → Winners, choose a pending draw, and use Announce winner with the winner name and winning token.'
+                  : 'The first draw is on its way — when it runs, the winning token will be revealed right here alongside every entered token number.'}
               </p>
             </div>
           </div>

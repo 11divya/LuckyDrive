@@ -4,8 +4,10 @@ import Button from '../../../components/Button';
 import CountdownTimer from '../../../components/CountdownTimer';
 import SalesProgress from '../../../components/SalesProgress';
 import { formatZAR, formatPercent } from '../../../utils/format';
+import { isTicketSalesOpen } from '../../../utils/ticketSales';
 
 export default function TicketPurchaseRail({ car, qty, onQtyChange, total, onBuy, submitting }) {
+  const salesOpen = isTicketSalesOpen(car);
   return (
     <aside className="ld-card sticky top-24 self-start space-y-6">
       <div className="flex items-baseline justify-between">
@@ -35,6 +37,7 @@ export default function TicketPurchaseRail({ car, qty, onQtyChange, total, onBuy
           min={1}
           max={100}
           value={qty}
+          disabled={!salesOpen}
           onChange={(v) => onQtyChange(v || 1)}
           className="w-full"
         />
@@ -45,8 +48,18 @@ export default function TicketPurchaseRail({ car, qty, onQtyChange, total, onBuy
         <span className="font-display font-bold text-2xl text-text">{total}</span>
       </div>
 
-      <Button block onClick={onBuy} loading={submitting}>
-        Buy Now
+      {!salesOpen && (
+        <p className="text-xs text-text-muted leading-relaxed -mt-2">
+          {car.status === 'draw_complete' || car.status === 'delivered'
+            ? 'This draw has ended. Browse our other active listings.'
+            : (car.ticketsSold ?? 0) >= (car.totalTickets ?? 1)
+              ? 'This draw is sold out.'
+              : 'Ticket sales are closed for this listing. Sales may open again soon.'}
+        </p>
+      )}
+
+      <Button block onClick={onBuy} loading={submitting} disabled={!salesOpen}>
+        {salesOpen ? 'Buy Now' : 'Sales Closed'}
       </Button>
 
       <div className="flex justify-around text-text-muted text-xs pt-2">

@@ -55,6 +55,10 @@ export default function ManageInventory() {
     setDrawer((s) => ({ ...s, open: false }));
 
   const handleDelete = async (row) => {
+    if (!/^[a-f\d]{24}$/i.test(String(row.id || ''))) {
+      message.error('This listing is not in the database. Refresh the page and try again.');
+      return;
+    }
     try {
       await ApiService.adminDeleteCar(row.id);
       message.success(`${row.name} deleted`);

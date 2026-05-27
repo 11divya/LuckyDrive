@@ -1,32 +1,34 @@
+import { Phone } from 'lucide-react';
+
 import Logo from './Logo';
+
+const CONTACT_PHONE = '+27836567199';
+const CONTACT_DISPLAY = '+27 836567199';
 
 export default function Footer() {
   return (
     <footer className="border-t border-outline-variant/20 bg-dark mt-20">
-      <div className="ld-container py-10 grid gap-8 md:grid-cols-3">
-        <div>
-          <Logo />
-          <p className="mt-4 text-sm text-text-muted leading-relaxed">
-            © {new Date().getFullYear()} LuckyDrive (Pty) Ltd. Licensed by the National Lotteries Commission.
-          </p>
+      <div className="ld-container py-10 md:py-12">
+        <div className="flex flex-col items-start gap-4">
+          <Logo linkTo="/" />
+
+          <a
+            href={`tel:${CONTACT_PHONE}`}
+            className="inline-flex items-center gap-2 text-text-muted hover:text-primary transition-colors"
+          >
+            <Phone size={14} className="text-primary flex-shrink-0" />
+            <span>
+              <span className="font-label-bold text-[10px] text-text-muted tracking-[0.05em] mr-2">
+                CONTACT
+              </span>
+              <span className="text-sm tabular-nums">{CONTACT_DISPLAY}</span>
+            </span>
+          </a>
         </div>
-        <div>
-          <div className="font-label-bold text-xs text-text-muted mb-3">EXPLORE</div>
-          <ul className="space-y-2 text-sm">
-            <li><a href="/" className="text-text hover:text-primary">Browse Cars</a></li>
-            <li><a href="/draws" className="text-text hover:text-primary">Live Draws</a></li>
-            <li><a href="/winners" className="text-text hover:text-primary">Winners</a></li>
-          </ul>
-        </div>
-        <div>
-          <div className="font-label-bold text-xs text-text-muted mb-3">LEGAL</div>
-          <ul className="space-y-2 text-sm">
-            <li><a href="/privacy" className="text-text hover:text-primary">Privacy Policy</a></li>
-            <li><a href="/terms" className="text-text hover:text-primary">Terms &amp; Conditions</a></li>
-            <li><a href="/responsible" className="text-text hover:text-primary">Responsible Gambling</a></li>
-            <li><a href="/contact" className="text-text hover:text-primary">Contact Us</a></li>
-          </ul>
-        </div>
+
+        <p className="mt-8 pt-8 border-t border-outline-variant/20 text-sm text-text-muted leading-relaxed max-w-3xl">
+          © {new Date().getFullYear()} LuckyDrive (Pty) Ltd. Licensed by the National Lotteries Commission.
+        </p>
       </div>
     </footer>
   );

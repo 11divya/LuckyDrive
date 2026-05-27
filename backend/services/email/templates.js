@@ -16,34 +16,61 @@ function ticketConfirmationSubject({ car }) {
   return `Your LuckyDrive tickets — ${car.name}`;
 }
 
-function ticketConfirmationText({ name, car, tickets, booking }) {
-  const tokens = tickets.map((t) => t.code).join(', ');
+function ticketRowsText(tickets, unitPrice) {
+  return tickets.map((t, i) => {
+    const line = `  ${i + 1}. Token: ${t.code}`;
+    return unitPrice != null ? `${line}  (${formatZAR(unitPrice)} each)` : line;
+  });
+}
+
+function ticketConfirmationText({ to, name, car, tickets, booking }) {
+  const unitPrice = booking.unitPrice;
   return [
     `Hi ${name || 'there'},`,
     '',
-    `Your purchase for "${car.name}" is confirmed. Here are your token numbers:`,
+    `Your purchase for "${car.name}" is confirmed.`,
     '',
-    ...tickets.map((t) => `  • ${t.code}`),
+    '── Your details ──',
+    `Email:              ${to}`,
+    `Tickets purchased:  ${booking.quantity}`,
     '',
-    `Quantity:    ${booking.quantity}`,
-    `Total paid:  ${formatZAR(booking.totalAmount)}`,
-    `Reference:   ${booking.providerRef}`,
+    '── Token numbers ──',
+    ...ticketRowsText(tickets, unitPrice),
     '',
-    `The draw runs on ${formatDate(car.drawDate)}.`,
-    `On that day every entered token number will be displayed at https://luckydrive.co.za/winners and the winning token will be revealed live.`,
+    '── Purchase summary ──',
+    `Vehicle:      ${car.name}`,
+    `Prize value:  ${formatZAR(car.prizeValue)}`,
+    `Ticket price: ${formatZAR(unitPrice)}`,
+    `Total paid:   ${formatZAR(booking.totalAmount)}`,
+    `Draw date:    ${formatDate(car.drawDate)}`,
+    `Reference:    ${booking.providerRef}`,
     '',
-    `Bring this email — or your tokens above — for verification on draw day.`,
+    `On draw day every entered token number will be published at https://luckydrive.co.za/winners and the winning token will be revealed live.`,
+    '',
+    `Keep this email for verification on draw day.`,
     '',
     `Drive away lucky,`,
     `The LuckyDrive Team`,
   ].join('\n');
 }
 
-function ticketConfirmationHtml({ name, car, tickets, booking }) {
+function ticketConfirmationHtml({ to, name, car, tickets, booking }) {
+  const unitPrice = booking.unitPrice;
   const tokenChips = tickets
     .map(
       (t) =>
         `<span style="display:inline-block;padding:6px 12px;margin:4px;border-radius:6px;background:#1f1e2b;border:1px solid rgba(240,165,0,0.45);font-family:'Courier New',monospace;font-weight:700;color:#f0a500;letter-spacing:0.05em;font-size:14px;">${t.code}</span>`
+    )
+    .join('');
+
+  const ticketTableRows = tickets
+    .map(
+      (t, i) => `
+          <tr>
+            <td style="padding:10px 8px;border-top:1px solid rgba(159,142,121,0.18);color:#d6c4ac;">#${i + 1}</td>
+            <td style="padding:10px 8px;border-top:1px solid rgba(159,142,121,0.18);font-family:'Courier New',monospace;font-weight:700;color:#f0a500;">${t.code}</td>
+            <td style="padding:10px 8px;border-top:1px solid rgba(159,142,121,0.18);text-align:right;color:#e3e0f2;">${formatZAR(unitPrice)}</td>
+          </tr>`
     )
     .join('');
 
@@ -64,20 +91,41 @@ function ticketConfirmationHtml({ name, car, tickets, booking }) {
         </h1>
         <p style="margin:0 0 20px;color:#d6c4ac;line-height:1.6;">
           Your purchase for <strong style="color:#e3e0f2;">${car.name}</strong> is confirmed.
-          Below are the unique token numbers issued to you.
+          Below are your unique token numbers and full ticket details.
         </p>
 
+        <div style="margin:16px 0;padding:14px 16px;background:#12121e;border-radius:12px;">
+          <div style="font-size:11px;letter-spacing:0.05em;font-weight:700;color:#d6c4ac;margin-bottom:8px;">CUSTOMER</div>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;color:#d6c4ac;">
+            <tr><td style="padding:4px 0;">Email</td><td style="padding:4px 0;text-align:right;color:#e3e0f2;">${to}</td></tr>
+            <tr><td style="padding:4px 0;">Tickets purchased</td><td style="padding:4px 0;text-align:right;color:#e3e0f2;font-weight:700;">${booking.quantity}</td></tr>
+          </table>
+        </motion.div>
+
         <div style="margin:20px 0;text-align:center;background:#12121e;padding:18px 12px;border-radius:12px;">
-          <div style="font-size:11px;letter-spacing:0.05em;font-weight:700;color:#d6c4ac;margin-bottom:10px;">
-            YOUR TOKEN NUMBERS
-          </div>
+          <div style="font-size:11px;letter-spacing:0.05em;font-weight:700;color:#d6c4ac;margin-bottom:10px;">YOUR TOKEN NUMBERS</div>
           ${tokenChips}
         </div>
 
-        <table style="width:100%;border-collapse:collapse;font-size:14px;color:#d6c4ac;margin-top:8px;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;color:#d6c4ac;margin-top:12px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:8px;color:#9f8e79;font-size:11px;">#</th>
+              <th style="text-align:left;padding:8px;color:#9f8e79;font-size:11px;">TOKEN</th>
+              <th style="text-align:right;padding:8px;color:#9f8e79;font-size:11px;">PRICE</th>
+            </tr>
+          </thead>
+          <tbody>${ticketTableRows}</tbody>
+        </table>
+
+        <table style="width:100%;border-collapse:collapse;font-size:14px;color:#d6c4ac;margin-top:16px;">
           <tr>
-            <td style="padding:8px 0;border-top:1px solid rgba(159,142,121,0.18);">Quantity</td>
-            <td style="padding:8px 0;border-top:1px solid rgba(159,142,121,0.18);text-align:right;color:#e3e0f2;">${booking.quantity}</td>
+            <td style="padding:8px 0;border-top:1px solid rgba(159,142,121,0.18);">Vehicle</td>
+            <td style="padding:8px 0;border-top:1px solid rgba(159,142,121,0.18);text-align:right;color:#e3e0f2;">${car.name}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;border-top:1px solid rgba(159,142,121,0.18);">Prize value</td>
+            <td style="padding:8px 0;border-top:1px solid rgba(159,142,121,0.18);text-align:right;color:#e3e0f2;">${formatZAR(car.prizeValue)}</td>
           </tr>
           <tr>
             <td style="padding:8px 0;border-top:1px solid rgba(159,142,121,0.18);">Total paid</td>
@@ -95,13 +143,13 @@ function ticketConfirmationHtml({ name, car, tickets, booking }) {
 
         <p style="color:#d6c4ac;line-height:1.6;margin-top:18px;">
           On draw day, every issued token number will appear on
-          <a style="color:#f0a500;text-decoration:none;" href="https://luckydrive.co.za/winners">luckydrive.co.za/winners</a>
-          and the winning token will be revealed live. Keep this email — or any of the tokens above — for verification.
+          <a style="color:#f0a500;text-decoration:none;" href="https://luckydrive.co.za/winners">luckydrive.co.za/winners</a>.
+          Keep this email for verification.
         </p>
       </div>
 
       <p style="text-align:center;margin-top:18px;color:#9f8e79;font-size:12px;">
-        © ${new Date().getFullYear()} LuckyDrive (Pty) Ltd. Licensed by the National Lotteries Commission.
+        © ${new Date().getFullYear()} LuckyDrive (Pty) Ltd.
       </p>
     </div>
   </body>

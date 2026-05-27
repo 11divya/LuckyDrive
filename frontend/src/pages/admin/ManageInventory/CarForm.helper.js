@@ -32,6 +32,8 @@ export const carToFormValues = (car) => {
   if (!car) {
     return {
       status: 'active',
+      ticketSalesOpen: true,
+      ticketsSold: 0,
       year: new Date().getFullYear(),
       mileageKm: 0,
       images: [''],
@@ -50,6 +52,8 @@ export const carToFormValues = (car) => {
     prizeValue: car.prizeValue,
     ticketPrice: car.ticketPrice,
     totalTickets: car.totalTickets,
+    ticketsSold: car.ticketsSold ?? 0,
+    ticketSalesOpen: car.ticketSalesOpen ?? false,
     drawDate: car.drawDate ? dayjs(car.drawDate) : undefined,
     status: car.status || 'active',
     images: car.images?.length ? [...car.images] : [''],
@@ -61,7 +65,8 @@ export const carToFormValues = (car) => {
 
 // Convert AntD Form values into a payload accepted by the admin endpoints.
 export const formValuesToPayload = (values) => {
-  const payload = { ...values };
+  const { mintedTicketCount: _minted, ...rest } = values;
+  const payload = { ...rest };
   payload.images = (values.images || []).filter(Boolean);
   payload.faq = (values.faq || []).filter((f) => f && f.question && f.answer);
   if (values.drawDate) {

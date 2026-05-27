@@ -1,5 +1,4 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Bell, HelpCircle } from 'lucide-react';
 import { Avatar, Dropdown } from 'antd';
 import Logo from './Logo';
 import Button from './Button';
@@ -49,21 +48,6 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Help"
-            className="hidden md:inline-flex w-9 h-9 items-center justify-center rounded-full text-text-muted hover:text-primary hover:bg-dark-100 transition-colors"
-          >
-            <HelpCircle size={18} />
-          </button>
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="hidden md:inline-flex w-9 h-9 items-center justify-center rounded-full text-text-muted hover:text-primary hover:bg-dark-100 transition-colors"
-          >
-            <Bell size={18} />
-          </button>
-
           {user ? (
             <Dropdown menu={userMenu} placement="bottomRight">
               <Avatar

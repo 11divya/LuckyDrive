@@ -69,3 +69,84 @@
   border-color: #f0a500 !important;
   box-shadow: 0 0 0 2px rgba(240, 165, 0, 0.18) !important;
 }
+
+/* Winner-announcement carousel below navbar */
+.ld-announcement-carousel {
+  min-height: 72px;
+}
+
+.ld-announcement-carousel__arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-top: -1.125rem;
+  border-radius: 9999px;
+  border: 1px solid #514533;
+  background-color: #292936;
+  color: #ffc56c;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.ld-announcement-carousel__arrow:hover {
+  color: #e3e0f2;
+  border-color: #ffc56c;
+  background-color: #343341;
+}
+
+.ld-announcement-carousel__arrow:focus-visible {
+  outline: 2px solid #ffc56c;
+  outline-offset: 2px;
+}
+
+.ld-announcement-carousel__arrow--prev {
+  left: 0.5rem;
+}
+
+.ld-announcement-carousel__arrow--next {
+  right: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .ld-announcement-carousel__arrow--prev {
+    left: 1rem;
+  }
+
+  .ld-announcement-carousel__arrow--next {
+    right: 1rem;
+  }
+}
+
+.ld-announcement-carousel .ld-container {
+  padding-left: 2.75rem;
+  padding-right: 2.75rem;
+}
+
+@media (min-width: 768px) {
+  .ld-announcement-carousel .ld-container {
+    padding-left: 3.25rem;
+    padding-right: 3.25rem;
+  }
+}
+.ld-announcement-carousel .ant-carousel .slick-list,
+.ld-announcement-carousel .ant-carousel .slick-track,
+.ld-announcement-carousel .ant-carousel .slick-slide > div {
+  min-height: 72px;
+}
+.ld-announcement-carousel .slick-dots {
+  bottom: 4px;
+}
+.ld-announcement-carousel .slick-dots li button {
+  background: #514533;
+  opacity: 0.6;
+}
+.ld-announcement-carousel .slick-dots li.slick-active button {
+  background: #f0a500;
+  opacity: 1;
+}

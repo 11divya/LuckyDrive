@@ -4,6 +4,7 @@ const { authenticate, authorize } = require('../middleware/auth.middleware');
 const {
   carValidation,
   drawValidation,
+  settingsValidation,
   mongoId,
   pagination,
   handleValidationErrors,
@@ -12,6 +13,14 @@ const { BadRequestError, NotFoundError } = require('../utils/errors');
 const Car = require('../models/Car');
 const Ticket = require('../models/Ticket');
 const Draw = require('../models/Draw');
+const Booking = require('../models/Booking');
+const User = require('../models/User');
+const SiteSettings = require('../models/SiteSettings');
+const { carAcceptsTicketSales } = require('../utils/ticketSales');
+const {
+  allBanners,
+  normalizeBannerInput,
+} = require('../utils/announcementBanners');
 
 router.use(authenticate, authorize('admin'));
 
@@ -34,6 +43,7 @@ const EDITABLE_FIELDS = [
   'drawDate',
   'status',
   'faq',
+  'ticketSalesOpen',
 ];
 
 function pickEditable(body) {
@@ -47,12 +57,174 @@ function pickEditable(body) {
   return out;
 }
 
-function carShape(car) {
+async function mintedCountsByCar(carIds) {
+  if (!carIds.length) return {};
+  const rows = await Ticket.aggregate([
+    { $match: { car: { $in: carIds } } },
+    { $group: { _id: '$car', count: { $sum: 1 } } },
+  ]);
+  return Object.fromEntries(rows.map((r) => [r._id.toString(), r.count]));
+}
+
+function carShape(car, mintedMap = {}) {
+  const id = car._id.toString();
+  const mintedTicketCount = mintedMap[id] ?? 0;
   return {
     ...car.toJSON(),
-    id: car._id.toString(),
+    id,
+    ticketSalesOpen: Boolean(car.ticketSalesOpen),
+    mintedTicketCount,
+    checkoutOpen: carAcceptsTicketSales(car),
   };
 }
+
+function settingsShape(doc) {
+  return {
+    bankName: doc.bankName || 'First National Bank',
+    accountHolderName: doc.accountHolderName || 'LuckyDrive (Pty) Ltd',
+    accountNumber: doc.accountNumber || '62845678901',
+    branchCode: doc.branchCode || '250655',
+    accountType: doc.accountType || 'Cheque',
+    bankReferenceNote:
+      doc.bankReferenceNote ||
+      'Use the transaction reference shown at checkout as your payment reference.',
+    announcementBanners: allBanners(doc),
+  };
+}
+
+// GET /api/admin/settings — bank transfer + site configuration.
+router.get(
+  '/settings',
+  asyncHandler(async (_req, res) => {
+    const settings = await SiteSettings.load();
+    res.json({ success: true, data: settingsShape(settings) });
+  })
+);
+
+// PUT /api/admin/settings — replace bank transfer details shown at checkout.
+router.put(
+  '/settings',
+  settingsValidation.update,
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const settings = await SiteSettings.load();
+    settings.bankName = req.body.bankName.trim();
+    settings.accountHolderName = req.body.accountHolderName.trim();
+    settings.accountNumber = req.body.accountNumber.trim();
+    settings.branchCode = req.body.branchCode.trim();
+    settings.accountType = (req.body.accountType || 'Cheque').trim();
+    settings.bankReferenceNote = (req.body.bankReferenceNote || '').trim();
+    await settings.save();
+    res.json({ success: true, data: settingsShape(settings) });
+  })
+);
+
+// PUT /api/admin/settings/announcements — winner-announcement carousel slides.
+router.put(
+  '/settings/announcements',
+  settingsValidation.updateAnnouncements,
+  handleValidationErrors,
+  asyncHandler(async (req, res) => {
+    const settings = await SiteSettings.load();
+    const items = Array.isArray(req.body.announcementBanners)
+      ? req.body.announcementBanners
+      : [];
+    settings.announcementBanners = items.map(normalizeBannerInput);
+    await settings.save();
+    res.json({
+      success: true,
+      data: { announcementBanners: allBanners(settings) },
+    });
+  })
+);
+
+// POST /api/admin/bookings/mark-paid — record UPI settlement for a pending checkout (mock / manual).
+router.post(
+  '/bookings/mark-paid',
+  asyncHandler(async (req, res) => {
+    const providerRef = (req.body?.providerRef || '').trim();
+    if (!providerRef) throw new BadRequestError('providerRef is required');
+
+    const booking = await Booking.findOne({ providerRef, paymentStatus: 'pending' });
+    if (!booking) {
+      throw new NotFoundError('No pending booking found for this transaction reference');
+    }
+
+    booking.paymentStatus = 'paid';
+    booking.paidAt = new Date();
+    await booking.save();
+
+    res.json({
+      success: true,
+      data: {
+        providerRef,
+        paymentStatus: booking.paymentStatus,
+        message:
+          'Payment marked as received. The customer can tap "I have paid" again to receive tokens.',
+      },
+    });
+  })
+);
+
+// GET /api/admin/customers — all registered customers with purchase summary.
+router.get(
+  '/customers',
+  asyncHandler(async (_req, res) => {
+    const customers = await User.find({ role: 'customer' })
+      .sort({ createdAt: -1 })
+      .select('name email phone rewardPoints lastLoginAt createdAt')
+      .lean();
+
+    const userIds = customers.map((c) => c._id);
+
+    const [ticketStats, bookingStats] = await Promise.all([
+      Ticket.aggregate([
+        { $match: { user: { $in: userIds } } },
+        { $group: { _id: '$user', ticketCount: { $sum: 1 } } },
+      ]),
+      Booking.aggregate([
+        { $match: { user: { $in: userIds }, paymentStatus: 'paid' } },
+        {
+          $group: {
+            _id: '$user',
+            bookingCount: { $sum: 1 },
+            totalSpent: { $sum: '$totalAmount' },
+          },
+        },
+      ]),
+    ]);
+
+    const ticketsByUser = Object.fromEntries(
+      ticketStats.map((r) => [r._id.toString(), r.ticketCount])
+    );
+    const bookingsByUser = Object.fromEntries(
+      bookingStats.map((r) => [
+        r._id.toString(),
+        { bookingCount: r.bookingCount, totalSpent: r.totalSpent },
+      ])
+    );
+
+    res.json({
+      success: true,
+      data: customers.map((c) => {
+        const id = c._id.toString();
+        const bookings = bookingsByUser[id];
+        return {
+          id,
+          name: c.name,
+          email: c.email,
+          phone: c.phone || '',
+          rewardPoints: c.rewardPoints ?? 0,
+          lastLoginAt: c.lastLoginAt,
+          registeredAt: c.createdAt,
+          ticketCount: ticketsByUser[id] ?? 0,
+          bookingCount: bookings?.bookingCount ?? 0,
+          totalSpent: bookings?.totalSpent ?? 0,
+        };
+      }),
+    });
+  })
+);
 
 // GET /api/admin/overview — KPI tiles + recent bookings (still a stub for now).
 router.get(
@@ -88,9 +260,11 @@ router.get(
       Car.countDocuments({}),
     ]);
 
+    const mintedMap = await mintedCountsByCar(items.map((c) => c._id));
+
     res.json({
       success: true,
-      data: items.map(carShape),
+      data: items.map((c) => carShape(c, mintedMap)),
       meta: { page, limit, total },
     });
   })
@@ -104,7 +278,8 @@ router.get(
   asyncHandler(async (req, res) => {
     const car = await Car.findById(req.params.id);
     if (!car) throw new NotFoundError('Car not found');
-    res.json({ success: true, data: carShape(car) });
+    const mintedMap = await mintedCountsByCar([car._id]);
+    res.json({ success: true, data: carShape(car, mintedMap) });
   })
 );
 
@@ -116,13 +291,17 @@ router.post(
   asyncHandler(async (req, res) => {
     const payload = pickEditable(req.body);
     if (payload.ticketsSold == null) payload.ticketsSold = 0;
+    if (payload.ticketSalesOpen == null) {
+      payload.ticketSalesOpen = ['active', 'closing_soon'].includes(payload.status);
+    }
     if (payload.totalTickets != null && payload.ticketsSold > payload.totalTickets) {
       throw new BadRequestError('ticketsSold cannot exceed totalTickets');
     }
     payload.createdBy = req.user.id;
 
     const car = await Car.create(payload);
-    res.status(201).json({ success: true, data: carShape(car) });
+    const mintedMap = await mintedCountsByCar([car._id]);
+    res.status(201).json({ success: true, data: carShape(car, mintedMap) });
   })
 );
 
@@ -145,6 +324,13 @@ router.put(
     const nextTotal = payload.totalTickets ?? existing.totalTickets;
     const nextSold = payload.ticketsSold ?? existing.ticketsSold;
 
+    if (nextSold < mintedCount) {
+      throw new BadRequestError(
+        `ticketsSold cannot be below ${mintedCount} — that many ticket${
+          mintedCount === 1 ? ' has' : 's have'
+        } already been minted in checkout.`
+      );
+    }
     if (nextTotal < mintedCount) {
       throw new BadRequestError(
         `Cannot set totalTickets to ${nextTotal} \u2014 ${mintedCount} ticket${
@@ -159,7 +345,8 @@ router.put(
     Object.assign(existing, payload);
     await existing.save();
 
-    res.json({ success: true, data: carShape(existing) });
+    const mintedMap = await mintedCountsByCar([existing._id]);
+    res.json({ success: true, data: carShape(existing, mintedMap) });
   })
 );
 
@@ -167,19 +354,86 @@ router.put(
 // Draws
 // ============================================================================
 
-// PUT /api/admin/draws/:id — update status / notes on an existing draw.
+// PUT /api/admin/draws/:id — update draw / announce winner.
 router.put(
   '/draws/:id',
   mongoId('id'),
   drawValidation.update,
   handleValidationErrors,
   asyncHandler(async (req, res) => {
-    const draw = await Draw.findById(req.params.id);
+    const draw = await Draw.findById(req.params.id).populate('winningTicket', 'code');
     if (!draw) throw new NotFoundError('Draw not found');
 
-    if (req.body.status !== undefined) draw.status = req.body.status;
     if (req.body.notes !== undefined) draw.notes = req.body.notes;
+    if (req.body.drawnAt !== undefined) {
+      draw.drawnAt = req.body.drawnAt ? new Date(req.body.drawnAt) : null;
+    }
+    if (req.body.winnerDisplayName !== undefined) {
+      const name = (req.body.winnerDisplayName || '').trim();
+      draw.winnerDisplayName = name || null;
+    }
+
+    if (req.body.winningTicketCode !== undefined) {
+      const raw = (req.body.winningTicketCode || '').trim();
+      if (!raw) {
+        await Ticket.updateMany({ car: draw.car }, { isWinner: false });
+        draw.winningTicket = null;
+        draw.winner = null;
+        draw.publicTicketCode = null;
+      } else {
+        const code = raw.toUpperCase();
+        const ticket = await Ticket.findOne({ car: draw.car, code });
+        await Ticket.updateMany({ car: draw.car }, { isWinner: false });
+        if (ticket) {
+          ticket.isWinner = true;
+          await ticket.save();
+          draw.winningTicket = ticket._id;
+          draw.winner = ticket.user;
+          draw.publicTicketCode = null;
+        } else {
+          draw.winningTicket = null;
+          draw.winner = null;
+          draw.publicTicketCode = code;
+        }
+      }
+    }
+
+    if (req.body.status !== undefined) {
+      draw.status = req.body.status;
+    }
+
+    const { hasWinnerDetails } = require('../utils/drawWinner');
+    if (hasWinnerDetails(draw) && draw.status === 'scheduled') {
+      draw.status = 'announced';
+    }
+
+    if (
+      ['announced', 'completed', 'delivered'].includes(draw.status) &&
+      !draw.drawnAt
+    ) {
+      draw.drawnAt = draw.drawnAt || new Date();
+    }
+
+    const hasWinner =
+      draw.winningTicket ||
+      (draw.publicTicketCode && draw.publicTicketCode.length > 0);
+    if (
+      hasWinner &&
+      ['announced', 'completed', 'delivered'].includes(draw.status) &&
+      draw.car
+    ) {
+      await Car.findByIdAndUpdate(draw.car, { status: 'draw_complete' });
+    }
+
     await draw.save();
+    await draw.populate([
+      { path: 'car' },
+      { path: 'winner', select: 'name email' },
+      { path: 'winningTicket', select: 'code' },
+    ]);
+
+    const { winnerTicketCode, winnerName, isAnnouncedDraw } = require('../utils/drawWinner');
+    const totalTickets = await Ticket.countDocuments({ car: draw.car?._id });
 
     res.json({
       success: true,
@@ -187,6 +441,21 @@ router.put(
         id: draw._id.toString(),
         status: draw.status,
         notes: draw.notes,
+        drawnAt: draw.drawnAt,
+        winnerDisplayName: draw.winnerDisplayName || '',
+        winningTicketCode: winnerTicketCode(draw) || '',
+        winner: isAnnouncedDraw(draw)
+          ? { name: winnerName(draw), ticketCode: winnerTicketCode(draw) }
+          : null,
+        totalTicketsEntered: totalTickets,
+        car: draw.car
+          ? {
+              id: draw.car._id.toString(),
+              name: draw.car.name,
+              image: draw.car.images?.[0],
+              prizeValue: draw.car.prizeValue,
+            }
+          : null,
       },
     });
   })

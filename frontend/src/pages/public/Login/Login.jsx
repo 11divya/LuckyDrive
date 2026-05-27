@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Form, Input, Tabs, App as AntdApp } from 'antd';
-import { MailOutlined, LockOutlined, UserOutlined, ArrowRightOutlined, SafetyOutlined } from '@ant-design/icons';
+import {
+  MailOutlined,
+  LockOutlined,
+  UserOutlined,
+  PhoneOutlined,
+  ArrowRightOutlined,
+  SafetyOutlined,
+} from '@ant-design/icons';
 
 import Logo from '../../../components/Logo';
 import Button from '../../../components/Button';
@@ -123,6 +130,26 @@ export default function Login() {
               prefix={<MailOutlined className="text-text-muted" />}
               placeholder="name@example.com"
               autoComplete="email"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="phone"
+            label="Contact Number"
+            rules={[
+              { required: true, message: 'Contact number is required' },
+              {
+                pattern: /^\+?[\d\s()-]{9,20}$/,
+                message: 'Enter a valid contact number',
+              },
+            ]}
+          >
+            <Input
+              size="large"
+              prefix={<PhoneOutlined className="text-text-muted" />}
+              placeholder="082 123 4567"
+              autoComplete="tel"
+              inputMode="tel"
             />
           </Form.Item>
 

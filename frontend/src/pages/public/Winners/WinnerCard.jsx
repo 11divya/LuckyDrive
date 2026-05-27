@@ -22,6 +22,7 @@ export default function WinnerCard({ draw, featured = false, onChanged }) {
   }, [draw.id]);
 
   const tokens = details?.tickets || [];
+  const winner = details?.winner || draw.winner;
 
   return (
     <article
@@ -69,7 +70,7 @@ export default function WinnerCard({ draw, featured = false, onChanged }) {
                   WINNER
                 </div>
                 <div className="font-display font-bold text-xl text-text mt-0.5">
-                  {draw.winner?.name || 'Anonymous'}
+                  {winner?.name || 'Anonymous'}
                 </div>
               </div>
               <div className="text-right">
@@ -77,7 +78,7 @@ export default function WinnerCard({ draw, featured = false, onChanged }) {
                   WINNING TOKEN
                 </div>
                 <div className="font-mono font-bold text-lg text-primary tracking-wider mt-0.5">
-                  {draw.winner?.ticketCode}
+                  {winner?.ticketCode}
                 </div>
               </div>
             </div>
@@ -97,7 +98,7 @@ export default function WinnerCard({ draw, featured = false, onChanged }) {
           <TokenGrid
             tokens={tokens}
             loading={loading}
-            winnerCode={draw.winner?.ticketCode}
+            winnerCode={winner?.ticketCode}
           />
         </div>
       </div>

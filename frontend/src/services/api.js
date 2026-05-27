@@ -75,15 +75,25 @@ class ApiService {
   getCar(id)        { return this.request(`/cars/${id}`); }
 
   // --- Tickets ---
-  purchaseTickets(payload) { return this.request('/tickets/purchase', { method: 'POST', body: payload }); }
+  initTicketCheckout(payload) {
+    return this.request('/tickets/checkout', { method: 'POST', body: payload });
+  }
+  confirmTicketPurchase(payload) {
+    return this.request('/tickets/purchase/confirm', { method: 'POST', body: payload });
+  }
   myTickets()              { return this.request('/tickets/me'); }
 
   // --- Draws ---
   getDraws()               { return this.request('/draws'); }
   getDrawTokens(id)        { return this.request(`/draws/${id}/tokens`); }
 
+  // --- Settings (public) ---
+  getPaymentSettings()       { return this.request('/settings/payment'); }
+  getAnnouncementBanners()   { return this.request('/settings/announcements'); }
+
   // --- Admin ---
   adminOverview()          { return this.request('/admin/overview'); }
+  adminCustomers()         { return this.request('/admin/customers'); }
   adminCars(params)        {
     const qs = params ? `?${new URLSearchParams(params).toString()}` : '';
     return this.request(`/admin/cars${qs}`);
@@ -93,6 +103,17 @@ class ApiService {
   adminDeleteCar(id)       { return this.request(`/admin/cars/${id}`, { method: 'DELETE' }); }
   adminUpdateDraw(id, p)   { return this.request(`/admin/draws/${id}`, { method: 'PUT', body: p }); }
   adminDeleteDraw(id)      { return this.request(`/admin/draws/${id}`, { method: 'DELETE' }); }
+  adminGetSettings()              { return this.request('/admin/settings'); }
+  adminUpdateSettings(p)          { return this.request('/admin/settings', { method: 'PUT', body: p }); }
+  adminUpdateAnnouncements(p)     {
+    return this.request('/admin/settings/announcements', { method: 'PUT', body: p });
+  }
+  adminMarkBookingPaid(providerRef) {
+    return this.request('/admin/bookings/mark-paid', {
+      method: 'POST',
+      body: { providerRef },
+    });
+  }
 }
 
 const api = new ApiService();

@@ -42,9 +42,38 @@ export const buildColumns = ({ onEdit, onView, onDelete }) => [
     render: (v) => <span className="text-text">R {Number(v).toLocaleString('en-ZA')}</span>,
   },
   {
+    title: 'TICKETS',
+    key: 'tickets',
+    width: 168,
+    render: (_v, row) => {
+      const minted = row.mintedTicketCount ?? 0;
+      const displayed = row.ticketsSold ?? 0;
+      return (
+        <div className="text-xs tabular-nums">
+          <div className="text-text font-medium">{displayed.toLocaleString('en-ZA')} display</div>
+          <div className="text-text-muted mt-0.5">{minted.toLocaleString('en-ZA')} minted</div>
+        </div>
+      );
+    },
+  },
+  {
+    title: 'CHECKOUT',
+    key: 'checkout',
+    width: 100,
+    render: (_v, row) => (
+      <span
+        className={`px-2 py-1 rounded-full text-[10px] font-label-bold uppercase tracking-wide ${
+          row.ticketSalesOpen ? 'bg-primary/20 text-primary' : 'bg-dark-200 text-text-muted'
+        }`}
+      >
+        {row.ticketSalesOpen ? 'Buy Now' : 'Closed'}
+      </span>
+    ),
+  },
+  {
     title: 'SALES PROGRESS',
     key: 'sales',
-    width: 240,
+    width: 200,
     render: (_v, row) => {
       const pct = row.totalTickets ? Math.round((row.ticketsSold / row.totalTickets) * 100) : 0;
       return (
@@ -73,7 +102,7 @@ export const buildColumns = ({ onEdit, onView, onDelete }) => [
     align: 'right',
     width: 140,
     render: (_v, row) => {
-      const hasMintedTickets = (row.ticketsSold || 0) > 0;
+      const hasMintedTickets = (row.mintedTicketCount ?? 0) > 0;
       return (
         <div className="flex justify-end gap-1">
           <Tooltip title="Edit">

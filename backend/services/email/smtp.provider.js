@@ -34,8 +34,8 @@ const SmtpProvider = {
       from: FROM,
       to,
       subject: ticketConfirmationSubject({ car }),
-      text: ticketConfirmationText({ name, car, tickets, booking }),
-      html: ticketConfirmationHtml({ name, car, tickets, booking }),
+      text: ticketConfirmationText({ to, name, car, tickets, booking }),
+      html: ticketConfirmationHtml({ to, name, car, tickets, booking }),
     });
     return { provider: 'smtp', messageId: info.messageId, accepted: !!info.accepted?.length };
   },

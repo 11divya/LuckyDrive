@@ -3,8 +3,18 @@ const asyncHandler = require('../middleware/asyncHandler.middleware');
 const { mongoId, pagination, handleValidationErrors } = require('../middleware/validation.middleware');
 const { NotFoundError } = require('../utils/errors');
 const Car = require('../models/Car');
+const { carAcceptsTicketSales } = require('../utils/ticketSales');
 
 const PUBLIC_STATUSES = ['active', 'closing_soon', 'draw_complete'];
+
+function publicCarShape(car) {
+  return {
+    ...car.toJSON(),
+    id: car._id.toString(),
+    ticketSalesOpen: carAcceptsTicketSales(car),
+  };
+}
+
 
 // GET /api/cars — public, paginated. Hides drafts and archived cars.
 router.get(
@@ -25,7 +35,7 @@ router.get(
 
     res.json({
       success: true,
-      data: items.map((c) => ({ ...c.toJSON(), id: c._id.toString() })),
+      data: items.map(publicCarShape),
       meta: { page, limit, total },
     });
   })
@@ -43,7 +53,7 @@ router.get(
     }
     res.json({
       success: true,
-      data: { ...car.toJSON(), id: car._id.toString() },
+      data: publicCarShape(car),
     });
   })
 );

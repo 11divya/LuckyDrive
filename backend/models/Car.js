@@ -19,6 +19,8 @@ const carSchema = new mongoose.Schema(
     ticketPrice: { type: Number, required: true, min: 0 },
     totalTickets: { type: Number, required: true, min: 1 },
     ticketsSold: { type: Number, default: 0, min: 0 },
+    /** Admin toggle — when true, customers can buy tickets (if status allows). */
+    ticketSalesOpen: { type: Boolean, default: false, index: true },
 
     drawDate: { type: Date, required: true, index: true },
     status: {

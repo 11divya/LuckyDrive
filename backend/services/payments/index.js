@@ -1,7 +1,7 @@
 // PaymentsAdapter — single interface so providers stay swappable.
 // Choose the implementation via PAYMENTS_PROVIDER env var.
 //
-//   PAYMENTS_PROVIDER=mock     (default — always returns paid)
+//   PAYMENTS_PROVIDER=mock     (default — verifies pending booking settlement)
 //   PAYMENTS_PROVIDER=payfast  (future)
 //   PAYMENTS_PROVIDER=yoco     (future)
 //   PAYMENTS_PROVIDER=stripe   (future)

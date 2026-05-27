@@ -11,13 +11,14 @@ router.post(
   authValidation.signup,
   handleValidationErrors,
   asyncHandler(async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
 
     // Mongoose unique index on `email` will throw 11000 → mapped to 409 by errorHandler.
     const user = await User.create({
       name,
       email,
       password,
+      phone: phone.trim(),
       role: 'customer',
     });
 

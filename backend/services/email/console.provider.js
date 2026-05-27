@@ -18,7 +18,7 @@ function endBox() {
 const ConsoleProvider = {
   async sendTicketConfirmation({ to, name, car, tickets, booking }) {
     const subject = ticketConfirmationSubject({ car });
-    const body = ticketConfirmationText({ name, car, tickets, booking });
+    const body = ticketConfirmationText({ to, name, car, tickets, booking });
 
     process.stdout.write(box(`[email:console]  ${subject}`));
     process.stdout.write(`\n│ TO:      ${to}`);

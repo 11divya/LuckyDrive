@@ -7,14 +7,12 @@ const { NotFoundError } = require('../utils/errors');
 const Draw = require('../models/Draw');
 const Ticket = require('../models/Ticket');
 const Car = require('../models/Car');
-
-// Privacy-friendly winner display: "Alex Mokoena" → "Alex M."
-function maskName(fullName) {
-  if (!fullName) return 'Anonymous';
-  const parts = fullName.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
-}
+const { carAcceptsTicketSales } = require('../utils/ticketSales');
+const {
+  winnerName,
+  winnerTicketCode,
+  isAnnouncedDraw,
+} = require('../utils/drawWinner');
 
 function carPayload(car) {
   if (!car) return null;
@@ -27,14 +25,33 @@ function carPayload(car) {
     status: car.status,
     ticketsSold: car.ticketsSold,
     totalTickets: car.totalTickets,
+    ticketSalesOpen: carAcceptsTicketSales(car),
   };
 }
 
-// ----------------------------------------------------------------------------
-// GET /api/draws — public list, grouped into `announced` (drawn) and
-// `scheduled` (upcoming). Each entry carries enough data for the Winners page
-// to render a card without a second roundtrip.
-// ----------------------------------------------------------------------------
+function drawWinnerPayload(draw) {
+  const code = winnerTicketCode(draw);
+  if (!code) return null;
+  return {
+    name: winnerName(draw),
+    ticketCode: code,
+  };
+}
+
+function announcedDrawPayload(draw, totalTicketsEntered) {
+  return {
+    id: draw._id.toString(),
+    car: carPayload(draw.car),
+    status: draw.status,
+    drawnAt: draw.drawnAt,
+    totalTicketsEntered,
+    winner: drawWinnerPayload(draw),
+    winnerDisplayName: draw.winnerDisplayName || '',
+    winningTicketCode: winnerTicketCode(draw) || '',
+  };
+}
+
+// GET /api/draws — public list grouped into announced + scheduled.
 router.get(
   '/',
   asyncHandler(async (_req, res) => {
@@ -48,38 +65,25 @@ router.get(
     const scheduled = [];
 
     for (const d of draws) {
-      const base = {
-        id: d._id.toString(),
-        car: carPayload(d.car),
-        status: d.status,
-      };
-
-      if (
-        (d.status === 'announced' || d.status === 'completed' || d.status === 'delivered') &&
-        d.winningTicket
-      ) {
+      if (isAnnouncedDraw(d)) {
         const totalTickets = await Ticket.countDocuments({ car: d.car?._id });
-        announced.push({
-          ...base,
-          drawnAt: d.drawnAt,
-          totalTicketsEntered: totalTickets,
-          winner: {
-            name: maskName(d.winner?.name),
-            ticketCode: d.winningTicket.code,
-          },
-        });
+        announced.push(announcedDrawPayload(d, totalTickets));
       } else {
         scheduled.push({
-          ...base,
+          id: d._id.toString(),
+          car: carPayload(d.car),
+          status: d.status,
           drawDate: d.car?.drawDate,
+          drawnAt: d.drawnAt,
+          notes: d.notes,
+          winnerDisplayName: d.winnerDisplayName || '',
+          winningTicketCode: winnerTicketCode(d) || '',
+          winner: drawWinnerPayload(d),
         });
       }
     }
 
-    // Scheduled list — soonest first.
-    scheduled.sort(
-      (a, b) => new Date(a.drawDate || 0) - new Date(b.drawDate || 0)
-    );
+    scheduled.sort((a, b) => new Date(a.drawDate || 0) - new Date(b.drawDate || 0));
 
     res.json({
       success: true,
@@ -88,18 +92,14 @@ router.get(
   })
 );
 
-// ----------------------------------------------------------------------------
-// GET /api/draws/:id/tokens — every token that entered a specific draw, with
-// the winning one flagged. Used by the Winners page to show the full token
-// list "during the winner announcement".
-// ----------------------------------------------------------------------------
+// GET /api/draws/:id/tokens
 router.get(
   '/:id/tokens',
   mongoId('id'),
   handleValidationErrors,
   asyncHandler(async (req, res) => {
     const draw = await Draw.findById(req.params.id)
-      .populate('car', 'name images prizeValue drawDate')
+      .populate('car', 'name images prizeValue drawDate status ticketsSold totalTickets')
       .populate('winner', 'name')
       .populate('winningTicket', 'code');
 
@@ -109,6 +109,8 @@ router.get(
       .select('code isWinner')
       .sort({ purchasedAt: 1 });
 
+    const winCode = winnerTicketCode(draw);
+
     res.json({
       success: true,
       data: {
@@ -116,25 +118,18 @@ router.get(
         status: draw.status,
         drawnAt: draw.drawnAt,
         car: carPayload(draw.car),
-        winner: draw.winningTicket
-          ? {
-              name: maskName(draw.winner?.name),
-              ticketCode: draw.winningTicket.code,
-            }
-          : null,
+        winner: drawWinnerPayload(draw),
+        winnerDisplayName: draw.winnerDisplayName || '',
+        winningTicketCode: winCode || '',
         tickets: tickets.map((t) => ({
           code: t.code,
-          isWinner: !!t.isWinner,
+          isWinner: winCode ? t.code === winCode : !!t.isWinner,
         })),
       },
     });
   })
 );
 
-// ----------------------------------------------------------------------------
-// POST /api/draws/:id/run — admin-only manual draw trigger (kept as a 501
-// stub for now; runs are handled at seed time today).
-// ----------------------------------------------------------------------------
 router.post(
   '/:id/run',
   authenticate,
@@ -145,18 +140,6 @@ router.post(
     res.status(501).json({
       success: false,
       error: 'Not implemented',
-      contract: {
-        success: true,
-        data: {
-          draw: {
-            id: 'string',
-            status: 'announced',
-            winningTicket: 'ticketId',
-            winner: 'userId',
-            drawnAt: 'ISO-8601',
-          },
-        },
-      },
     });
   })
 );

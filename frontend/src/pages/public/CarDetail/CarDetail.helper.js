@@ -1,5 +1,6 @@
 import ApiService from '../../../services/api';
 import { findCar } from '../../../data/demoCars';
+import { isTicketSalesOpen, TICKET_SALES_CLOSED_MESSAGE } from '../../../utils/ticketSales';
 
 export const fetchCar = async (id) => {
   try {
@@ -33,6 +34,10 @@ export const calcTotal = (qty, price) => qty * price;
 // after gating on authentication. The actual payment confirmation lives
 // inside the modal (see components/PaymentModal.jsx).
 export const buildOpenPaymentHandler = ({ car, message, navigate, user, openModal }) => () => {
+  if (!isTicketSalesOpen(car)) {
+    message.warning(TICKET_SALES_CLOSED_MESSAGE);
+    return;
+  }
   if (!user) {
     message.info('Please log in to buy tickets.');
     navigate('/login', { state: { from: { pathname: `/cars/${car.id}` } } });

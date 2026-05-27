@@ -4,11 +4,13 @@ import StatusPill from '../../../components/StatusPill';
 import SalesProgress from '../../../components/SalesProgress';
 import CountdownTimer from '../../../components/CountdownTimer';
 import { formatZAR } from '../../../utils/format';
+import { isTicketSalesOpen } from '../../../utils/ticketSales';
 
 export default function FeaturedDrawHero({ car }) {
   const navigate = useNavigate();
   if (!car) return null;
   const showClosingSoon = car.status === 'closing_soon';
+  const salesOpen = isTicketSalesOpen(car);
 
   return (
     <article className="ld-card !p-0 overflow-hidden">
@@ -53,7 +55,12 @@ export default function FeaturedDrawHero({ car }) {
               <span className="font-display font-bold text-2xl">{formatZAR(car.ticketPrice)}</span>
               <span className="text-sm text-text-muted"> / ticket</span>
             </div>
-            <Button onClick={() => navigate(`/cars/${car.id}`)}>Enter Now</Button>
+            <Button
+              variant={salesOpen ? 'primary' : 'secondary'}
+              onClick={() => navigate(`/cars/${car.id}`)}
+            >
+              {salesOpen ? 'Enter Now' : 'View draw'}
+            </Button>
           </div>
         </div>
       </div>

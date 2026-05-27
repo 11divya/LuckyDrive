@@ -45,7 +45,7 @@ export default function DrawAdminActions({ draw, onChanged }) {
         className="inline-flex items-center gap-1 px-1 py-1 rounded-full bg-dark-200/80 border border-outline-variant/30"
         onClick={(e) => e.stopPropagation()}
       >
-        <Tooltip title="Edit draw">
+        <Tooltip title={isAnnounced ? 'Edit winner details' : 'Announce winner'}>
           <AntButton
             type="text"
             size="small"

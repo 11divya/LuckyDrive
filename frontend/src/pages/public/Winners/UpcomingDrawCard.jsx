@@ -6,6 +6,7 @@ import Button from '../../../components/Button';
 import DrawAdminActions from './DrawAdminActions';
 import { formatZAR } from '../../../utils/format';
 import { formatDrawDate, daysUntil } from './Winners.helper';
+import { isTicketSalesOpen } from '../../../utils/ticketSales';
 
 // Upcoming draw card — shown on /winners while the draw hasn't run yet.
 // Communicates "winner will be announced on <date>" per the brief.
@@ -14,6 +15,7 @@ export default function UpcomingDrawCard({ draw, onChanged }) {
   const navigate = useNavigate();
   const days = daysUntil(draw.drawDate);
   const car = draw.car || {};
+  const salesOpen = isTicketSalesOpen(car);
 
   return (
     <article className="ld-card !p-0 overflow-hidden flex flex-col">
@@ -57,8 +59,13 @@ export default function UpcomingDrawCard({ draw, onChanged }) {
           <span className="text-text-muted text-xs">
             All token numbers will be revealed live on draw day.
           </span>
-          <Button size="middle" onClick={() => navigate(`/cars/${car.id}`)}>
-            Enter Now
+          <Button
+            size="middle"
+            variant={salesOpen ? 'primary' : 'secondary'}
+            onClick={() => car.id && navigate(`/cars/${car.id}`)}
+            disabled={!car.id}
+          >
+            {salesOpen ? 'Enter Now' : 'View draw'}
           </Button>
         </div>
       </div>

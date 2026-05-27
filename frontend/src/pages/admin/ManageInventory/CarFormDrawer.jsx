@@ -5,8 +5,10 @@ import {
   Input,
   InputNumber,
   Select,
+  Switch,
   DatePicker,
   Divider,
+  Alert,
   Space,
   App as AntdApp,
 } from 'antd';
@@ -244,6 +246,52 @@ export default function CarFormDrawer({ open, mode = 'create', car, onClose, onS
             <InputNumber min={1} step={100} className="w-full" />
           </Form.Item>
         </div>
+
+        <Divider className="!my-6" />
+
+        {/* ----- Ticket sales ----- */}
+        <SectionTitle hint="Control whether customers see Buy Now on the public car page.">
+          Ticket Sales
+        </SectionTitle>
+
+        <Form.Item
+          name="ticketSalesOpen"
+          label={<span className={labelCls}>SALE STATUS</span>}
+          valuePropName="checked"
+        >
+          <Switch
+            checkedChildren="Buy Now"
+            unCheckedChildren="Sales Closed"
+          />
+        </Form.Item>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Form.Item
+            name="ticketsSold"
+            label={<span className={labelCls}>TICKETS SOLD (DISPLAY)</span>}
+            extra="Shown on cards and progress bars. Must be ≥ minted tickets from checkout."
+          >
+            <InputNumber min={0} step={1} className="w-full" />
+          </Form.Item>
+          {isEdit && (
+            <Form.Item label={<span className={labelCls}>MINTED IN CHECKOUT</span>}>
+              <Input
+                readOnly
+                value={String(car?.mintedTicketCount ?? 0)}
+                className="!bg-dark-200"
+              />
+            </Form.Item>
+          )}
+        </div>
+
+        {isEdit && (car?.mintedTicketCount ?? 0) > 0 && (
+          <Alert
+            type="info"
+            showIcon
+            className="!mb-6"
+            message={`${car.mintedTicketCount} ticket(s) were issued via checkout and cannot be removed without deleting the listing.`}
+          />
+        )}
 
         <Divider className="!my-6" />
 

@@ -1,5 +1,4 @@
 import ApiService from '../../../services/api';
-import { demoCars } from '../../../data/demoCars';
 
 export const TAB_ITEMS = [
   { key: 'all',       label: 'All Cars' },
@@ -10,11 +9,10 @@ export const TAB_ITEMS = [
 export const fetchInventory = async () => {
   try {
     const data = await ApiService.adminCars({ limit: 50 });
-    if (Array.isArray(data) && data.length) return data;
+    return Array.isArray(data) ? data : [];
   } catch {
-    // 501 / network — fall through to demo.
+    return [];
   }
-  return demoCars;
 };
 
 export const filterByTab = (rows, tab) => {

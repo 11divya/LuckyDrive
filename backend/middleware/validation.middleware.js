@@ -23,6 +23,12 @@ const authValidation = {
     body('email').isEmail().withMessage('Valid email required').normalizeEmail(),
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
     body('name').trim().notEmpty().withMessage('Name is required'),
+    body('phone')
+      .trim()
+      .notEmpty()
+      .withMessage('Contact number is required')
+      .matches(/^\+?[\d\s()-]{9,20}$/)
+      .withMessage('Enter a valid contact number'),
   ],
   login: [
     body('email').isEmail().withMessage('Valid email required').normalizeEmail(),
@@ -52,6 +58,8 @@ const carValidation = {
     body('faq.*.question').optional().isString().notEmpty(),
     body('faq.*.answer').optional().isString().notEmpty(),
     body('status').optional().isIn(CAR_STATUSES).withMessage(`Status must be one of: ${CAR_STATUSES.join(', ')}`),
+    body('ticketSalesOpen').optional().isBoolean(),
+    body('ticketsSold').optional().isInt({ min: 0 }),
   ],
   update: [
     body('name').optional().trim().notEmpty(),
@@ -73,6 +81,8 @@ const carValidation = {
     body('faq.*.question').optional().isString().notEmpty(),
     body('faq.*.answer').optional().isString().notEmpty(),
     body('status').optional().isIn(CAR_STATUSES),
+    body('ticketSalesOpen').optional().isBoolean(),
+    body('ticketsSold').optional().isInt({ min: 0 }),
   ],
 };
 
@@ -80,6 +90,22 @@ const ticketValidation = {
   purchase: [
     body('carId').isMongoId(),
     body('quantity').isInt({ min: 1, max: 100 }),
+  ],
+  checkout: [
+    body('carId').isMongoId(),
+    body('quantity').isInt({ min: 1, max: 100 }),
+    body('providerRef')
+      .trim()
+      .notEmpty()
+      .isLength({ min: 8, max: 64 })
+      .withMessage('providerRef is required'),
+  ],
+  confirmPurchase: [
+    body('providerRef')
+      .trim()
+      .notEmpty()
+      .isLength({ min: 8, max: 64 })
+      .withMessage('providerRef is required'),
   ],
 };
 
@@ -92,6 +118,36 @@ const drawValidation = {
       .isIn(DRAW_STATUSES)
       .withMessage(`Status must be one of: ${DRAW_STATUSES.join(', ')}`),
     body('notes').optional({ nullable: true }).isString(),
+    body('drawnAt').optional({ nullable: true }).isISO8601().toDate(),
+    body('winnerDisplayName').optional({ nullable: true }).trim().isString(),
+    body('winningTicketCode').optional({ nullable: true }).trim().isString(),
+  ],
+};
+
+const settingsValidation = {
+  update: [
+    body('bankName').trim().notEmpty().withMessage('Bank name is required'),
+    body('accountHolderName').trim().notEmpty().withMessage('Account holder name is required'),
+    body('accountNumber').trim().notEmpty().withMessage('Account number is required'),
+    body('branchCode').trim().notEmpty().withMessage('Branch code is required'),
+    body('accountType').optional({ nullable: true }).trim().isString(),
+    body('bankReferenceNote').optional({ nullable: true }).trim().isString(),
+  ],
+  updateAnnouncements: [
+    body('announcementBanners').isArray().withMessage('announcementBanners must be an array'),
+    body('announcementBanners.*.headline')
+      .trim()
+      .notEmpty()
+      .withMessage('Each slide needs a headline'),
+    body('announcementBanners.*.message').optional({ nullable: true }).trim().isString(),
+    body('announcementBanners.*.vehicleName').optional({ nullable: true }).trim().isString(),
+    body('announcementBanners.*.announcementDate')
+      .notEmpty()
+      .isISO8601()
+      .toDate()
+      .withMessage('Each slide needs a valid announcement date'),
+    body('announcementBanners.*.active').optional().isBoolean(),
+    body('announcementBanners.*.sortOrder').optional().isInt({ min: 0 }),
   ],
 };
 
@@ -103,4 +159,5 @@ module.exports = {
   carValidation,
   ticketValidation,
   drawValidation,
+  settingsValidation,
 };
