@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Skeleton } from 'antd';
 import { ChevronRight } from 'lucide-react';
 
-import Button from '../../../components/Button';
 import CarCard from '../../../components/CarCard';
 import { fetchHomeData, HOW_IT_WORKS } from './Home.helper';
 
@@ -26,14 +25,10 @@ export default function Home() {
             Win Your Dream <br />
             <span className="text-primary">Car Today.</span>
           </h1>
-          <p className="text-body-lg text-text-muted max-w-lg mb-8">
+          <p className="text-body-lg text-text-muted max-w-lg">
             Experience the thrill of owning a high-performance luxury vehicle. Buy your tickets now
             for a chance to drive away in a premium Mercedes or BMW for a fraction of the cost.
           </p>
-          <div className="flex flex-wrap gap-3">
-            <Button>Browse Live Draws</Button>
-            <Button variant="secondary">How It Works</Button>
-          </div>
         </div>
 
         <div className="relative">

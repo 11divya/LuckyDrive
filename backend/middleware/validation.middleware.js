@@ -129,9 +129,9 @@ const settingsValidation = {
     body('bankName').trim().notEmpty().withMessage('Bank name is required'),
     body('accountHolderName').trim().notEmpty().withMessage('Account holder name is required'),
     body('accountNumber').trim().notEmpty().withMessage('Account number is required'),
-    body('branchCode').trim().notEmpty().withMessage('Branch code is required'),
+    body('branchCode').trim().notEmpty().withMessage('Branch code / IFSC is required'),
     body('accountType').optional({ nullable: true }).trim().isString(),
-    body('bankReferenceNote').optional({ nullable: true }).trim().isString(),
+    body('paymentInstructions').optional({ nullable: true }).trim().isString(),
   ],
   updateAnnouncements: [
     body('announcementBanners').isArray().withMessage('announcementBanners must be an array'),

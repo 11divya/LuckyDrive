@@ -6,6 +6,7 @@ const router = require('express').Router();
 const asyncHandler = require('../middleware/asyncHandler.middleware');
 const SiteSettings = require('../models/SiteSettings');
 const { activeBanners } = require('../utils/announcementBanners');
+const { paymentBankShape } = require('../utils/paymentBank');
 
 // GET /api/settings/announcements — active winner-announcement carousel slides.
 router.get(
@@ -26,16 +27,7 @@ router.get(
     const settings = await SiteSettings.load();
     res.json({
       success: true,
-      data: {
-        bankName: settings.bankName || 'First National Bank',
-        accountHolderName: settings.accountHolderName || 'LuckyDrive (Pty) Ltd',
-        accountNumber: settings.accountNumber || '62845678901',
-        branchCode: settings.branchCode || '250655',
-        accountType: settings.accountType || 'Cheque',
-        bankReferenceNote:
-          settings.bankReferenceNote ||
-          'Use the transaction reference shown at checkout as your payment reference.',
-      },
+      data: paymentBankShape(settings),
     });
   })
 );

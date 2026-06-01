@@ -58,7 +58,7 @@ export default function Navbar() {
               </Avatar>
             </Dropdown>
           ) : (
-            <Button onClick={() => navigate('/login')}>Get Tickets</Button>
+            <Button onClick={() => navigate('/login')}>Login</Button>
           )}
         </div>
       </div>

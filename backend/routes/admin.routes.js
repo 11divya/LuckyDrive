@@ -21,6 +21,7 @@ const {
   allBanners,
   normalizeBannerInput,
 } = require('../utils/announcementBanners');
+const { paymentBankShape } = require('../utils/paymentBank');
 
 router.use(authenticate, authorize('admin'));
 
@@ -80,19 +81,12 @@ function carShape(car, mintedMap = {}) {
 
 function settingsShape(doc) {
   return {
-    bankName: doc.bankName || 'First National Bank',
-    accountHolderName: doc.accountHolderName || 'LuckyDrive (Pty) Ltd',
-    accountNumber: doc.accountNumber || '62845678901',
-    branchCode: doc.branchCode || '250655',
-    accountType: doc.accountType || 'Cheque',
-    bankReferenceNote:
-      doc.bankReferenceNote ||
-      'Use the transaction reference shown at checkout as your payment reference.',
+    ...paymentBankShape(doc),
     announcementBanners: allBanners(doc),
   };
 }
 
-// GET /api/admin/settings — bank transfer + site configuration.
+// GET /api/admin/settings — payment QR / scanner configuration.
 router.get(
   '/settings',
   asyncHandler(async (_req, res) => {
@@ -101,7 +95,7 @@ router.get(
   })
 );
 
-// PUT /api/admin/settings — replace bank transfer details shown at checkout.
+// PUT /api/admin/settings — replace payment QR / scanner configuration.
 router.put(
   '/settings',
   settingsValidation.update,
@@ -112,8 +106,8 @@ router.put(
     settings.accountHolderName = req.body.accountHolderName.trim();
     settings.accountNumber = req.body.accountNumber.trim();
     settings.branchCode = req.body.branchCode.trim();
-    settings.accountType = (req.body.accountType || 'Cheque').trim();
-    settings.bankReferenceNote = (req.body.bankReferenceNote || '').trim();
+    settings.accountType = (req.body.accountType || '').trim();
+    settings.paymentInstructions = (req.body.paymentInstructions || '').trim();
     await settings.save();
     res.json({ success: true, data: settingsShape(settings) });
   })

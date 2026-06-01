@@ -6,22 +6,6 @@ const mongoose = require('mongoose');
  */
 const siteSettingsSchema = new mongoose.Schema(
   {
-    // UPI / Payment QR settings
-    upiVpa: {
-      type: String,
-      default: 'luckydrive@oksbi',
-      trim: true,
-    },
-    upiMerchantName: {
-      type: String,
-      default: 'LuckyDrive',
-      trim: true,
-    },
-    upiLogoUrl: {
-      type: String,
-      default: '/luckydrive-icon.svg',
-      trim: true,
-    },
     // Bank transfer details shown at checkout
     bankName: {
       type: String,
@@ -30,7 +14,7 @@ const siteSettingsSchema = new mongoose.Schema(
     },
     accountHolderName: {
       type: String,
-      default: 'LuckyDrive (Pty) Ltd',
+      default: 'LuckyDrive Pty Ltd',
       trim: true,
     },
     accountNumber: {
@@ -48,9 +32,10 @@ const siteSettingsSchema = new mongoose.Schema(
       default: 'Cheque',
       trim: true,
     },
-    bankReferenceNote: {
+    paymentInstructions: {
       type: String,
-      default: 'Use the transaction reference shown at checkout as your payment reference.',
+      default:
+        'Transfer the exact ticket total from your bank app. Use the transaction reference below as your payment reference.',
       trim: true,
     },
     announcementBanners: {

@@ -5,7 +5,7 @@ import { CheckCircleOutlined } from '@ant-design/icons';
 import Button from '../../../components/Button';
 import ApiService from '../../../services/api';
 
-export default function RecordBankPayment() {
+export default function RecordUpiPayment() {
   const { message } = AntdApp.useApp();
   const [providerRef, setProviderRef] = useState('');
   const [loading, setLoading] = useState(false);
@@ -13,7 +13,7 @@ export default function RecordBankPayment() {
   const handleMarkPaid = async () => {
     const ref = providerRef.trim();
     if (!ref) {
-      message.warning('Enter the payment reference from the customer checkout');
+      message.warning('Enter the transaction reference from the customer checkout');
       return;
     }
     setLoading(true);
@@ -32,9 +32,9 @@ export default function RecordBankPayment() {
     <div className="ld-card max-w-4xl mt-10">
       <h2 className="font-display font-bold text-lg text-text">Record bank payment</h2>
       <p className="text-xs text-text-muted mt-1 mb-4 max-w-2xl">
-        When a customer&apos;s EFT appears in your bank account, paste their{' '}
-        <strong className="text-text">Payment reference</strong> from checkout here. Then they can
-        tap &quot;I have paid&quot; again to receive tokens.
+        After you see the customer&apos;s transfer in your bank, paste their{' '}
+        <strong className="text-text">payment reference</strong> from checkout here. They can then tap
+        &quot;I have paid&quot; again to receive tokens.
       </p>
       <div className="flex flex-col sm:flex-row gap-3">
         <Input

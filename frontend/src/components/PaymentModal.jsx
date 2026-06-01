@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Modal, App as AntdApp, Spin } from 'antd';
-import { Copy, CheckCircle2, ShieldCheck, Mail, Landmark } from 'lucide-react';
+import { Building2, Copy, CheckCircle2, ShieldCheck, Mail } from 'lucide-react';
 
 import Button from './Button';
 import TicketPurchaseSummaryModal from './TicketPurchaseSummaryModal';
 import ApiService from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatZAR } from '../utils/format';
-import { mergePaymentBank, PAYMENT_BANK_DEFAULTS } from '../utils/paymentBank';
+import { normalizePaymentBank, PAYMENT_BANK_DEFAULTS } from '../utils/paymentBank';
+
+const PAYMENT_TTL_SECONDS = 5 * 60;
 
 function genTxnRef(carId) {
   const tail = (carId || 'CAR').toString().slice(-4).toUpperCase();
@@ -16,22 +18,27 @@ function genTxnRef(carId) {
   return `LD-${tail}-${stamp}-${rnd}`;
 }
 
-function BankDetailRow({ label, value, onCopy }) {
+function pad(n) {
+  return String(n).padStart(2, '0');
+}
+
+function BankDetailRow({ label, value, onCopy, mono = false }) {
   return (
-    <div className="flex items-start justify-between gap-3 px-4 py-3 rounded-lg bg-dark-200 border border-outline-variant/30">
+    <button
+      type="button"
+      onClick={onCopy}
+      className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-dark-200 border border-outline-variant/30 hover:border-primary/50 transition-colors text-left"
+    >
       <div className="min-w-0">
         <div className="font-label-bold text-[10px] text-text-muted">{label}</div>
-        <div className="font-medium text-sm text-text break-all">{value}</div>
+        <div
+          className={`font-medium text-sm text-text break-all ${mono ? 'font-mono tracking-wide' : ''}`}
+        >
+          {value}
+        </div>
       </div>
-      <button
-        type="button"
-        onClick={() => onCopy(value, label)}
-        className="text-primary hover:text-primary-light flex-shrink-0 mt-1"
-        aria-label={`Copy ${label}`}
-      >
-        <Copy size={16} />
-      </button>
-    </div>
+      <Copy size={16} className="text-primary flex-shrink-0" />
+    </button>
   );
 }
 
@@ -40,7 +47,8 @@ export default function PaymentModal({ open, onClose, car, qty, total }) {
   const { user } = useAuth();
 
   const [ticketSummaryOpen, setTicketSummaryOpen] = useState(false);
-  const [step, setStep] = useState('pay'); // pay | confirming | success
+  const [step, setStep] = useState('pay');
+  const [secondsLeft, setSecondsLeft] = useState(PAYMENT_TTL_SECONDS);
   const [txnRef, setTxnRef] = useState(() => genTxnRef(car?.id));
   const [purchase, setPurchase] = useState(null);
   const [paymentNotReceived, setPaymentNotReceived] = useState(false);
@@ -55,7 +63,7 @@ export default function PaymentModal({ open, onClose, car, qty, total }) {
       setConfigLoading(true);
       try {
         const data = await ApiService.getPaymentSettings();
-        if (!cancelled && data) setBankDetails(mergePaymentBank(data));
+        if (!cancelled && data) setBankDetails(normalizePaymentBank(data));
       } catch {
         if (!cancelled) setBankDetails(PAYMENT_BANK_DEFAULTS);
       } finally {
@@ -70,6 +78,7 @@ export default function PaymentModal({ open, onClose, car, qty, total }) {
   useEffect(() => {
     if (open) {
       setStep('pay');
+      setSecondsLeft(PAYMENT_TTL_SECONDS);
       setTxnRef(genTxnRef(car?.id));
       setPurchase(null);
       setTicketSummaryOpen(false);
@@ -105,12 +114,23 @@ export default function PaymentModal({ open, onClose, car, qty, total }) {
     };
   }, [open, car?.id, qty, txnRef, user, message]);
 
-  const handleCopy = async (value, label) => {
+  useEffect(() => {
+    if (!open || step !== 'pay') return undefined;
+    const id = setInterval(() => {
+      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [open, step]);
+
+  const ttlLabel = `${pad(Math.floor(secondsLeft / 60))}:${pad(secondsLeft % 60)}`;
+  const expired = secondsLeft <= 0;
+
+  const copyText = async (text, label) => {
     try {
-      await navigator.clipboard.writeText(value);
+      await navigator.clipboard.writeText(text);
       message.success(`${label} copied`);
     } catch {
-      message.error('Could not copy — select the text manually.');
+      message.error('Could not copy — select and copy manually.');
     }
   };
 
@@ -146,6 +166,13 @@ export default function PaymentModal({ open, onClose, car, qty, total }) {
     onClose?.();
   };
 
+  const resetSession = () => {
+    setSecondsLeft(PAYMENT_TTL_SECONDS);
+    setTxnRef(genTxnRef(car?.id));
+    setCheckoutReady(false);
+    setPaymentNotReceived(false);
+  };
+
   if (!car) return null;
 
   return (
@@ -165,19 +192,11 @@ export default function PaymentModal({ open, onClose, car, qty, total }) {
         {step !== 'success' ? (
           <div className="p-6 md:p-7">
             <div className="mb-4">
-              <div className="font-label-bold text-[11px] text-primary">PAY BY BANK TRANSFER</div>
+              <div className="font-label-bold text-[11px] text-primary">BANK TRANSFER</div>
               <h3 className="font-display font-bold text-xl text-text mt-1">{car.name}</h3>
               <p className="text-sm text-text-muted">
-                {qty} ticket{qty > 1 ? 's' : ''} · Total{' '}
-                <span className="font-display font-bold text-text">{formatZAR(total)}</span>
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 mb-4 flex items-center gap-3">
-              <Landmark size={20} className="text-primary flex-shrink-0" />
-              <p className="text-sm text-text-muted">
-                Transfer the exact amount to the account below. Use the transaction reference as
-                your payment reference.
+                {qty} ticket{qty > 1 ? 's' : ''} · Transfer{' '}
+                <span className="font-display font-bold text-primary">{formatZAR(total)}</span>
               </p>
             </div>
 
@@ -186,63 +205,98 @@ export default function PaymentModal({ open, onClose, car, qty, total }) {
                 <Spin />
               </div>
             ) : (
-              <div className="grid gap-2">
-                <BankDetailRow
-                  label="BANK"
-                  value={bankDetails.bankName}
-                  onCopy={handleCopy}
-                />
-                <BankDetailRow
-                  label="ACCOUNT HOLDER"
-                  value={bankDetails.accountHolderName}
-                  onCopy={handleCopy}
-                />
-                <BankDetailRow
-                  label="ACCOUNT NUMBER"
-                  value={bankDetails.accountNumber}
-                  onCopy={handleCopy}
-                />
-                <BankDetailRow
-                  label="BRANCH CODE"
-                  value={bankDetails.branchCode}
-                  onCopy={handleCopy}
-                />
-                <BankDetailRow
-                  label="ACCOUNT TYPE"
-                  value={bankDetails.accountType}
-                  onCopy={handleCopy}
-                />
-                <div className="px-4 py-3 rounded-lg bg-dark-300/40 border border-primary/40">
-                  <div className="font-label-bold text-[10px] text-primary">AMOUNT TO PAY</div>
-                  <div className="font-display font-bold text-2xl text-text tabular-nums">
-                    {formatZAR(total)}
+              <>
+                <div className="rounded-xl bg-dark-200/80 border border-outline-variant/30 p-4">
+                  <div className="flex items-center gap-2 mb-4 text-primary">
+                    <Building2 size={18} />
+                    <span className="font-label-bold text-[11px] tracking-[0.08em]">
+                      PAY INTO THIS ACCOUNT
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <BankDetailRow
+                      label="BANK NAME"
+                      value={bankDetails.bankName}
+                      onCopy={() => copyText(bankDetails.bankName, 'Bank name')}
+                    />
+                    <BankDetailRow
+                      label="ACCOUNT HOLDER"
+                      value={bankDetails.accountHolderName}
+                      onCopy={() => copyText(bankDetails.accountHolderName, 'Account holder')}
+                    />
+                    <BankDetailRow
+                      label="ACCOUNT NUMBER"
+                      value={bankDetails.accountNumber}
+                      mono
+                      onCopy={() => copyText(bankDetails.accountNumber, 'Account number')}
+                    />
+                    <BankDetailRow
+                      label="BRANCH CODE / IFSC"
+                      value={bankDetails.branchCode}
+                      mono
+                      onCopy={() => copyText(bankDetails.branchCode, 'Branch code')}
+                    />
+                    {bankDetails.accountType ? (
+                      <BankDetailRow
+                        label="ACCOUNT TYPE"
+                        value={bankDetails.accountType}
+                        onCopy={() => copyText(bankDetails.accountType, 'Account type')}
+                      />
+                    ) : null}
                   </div>
                 </div>
-                <div className="px-4 py-3 rounded-lg bg-dark-300/40 border border-primary/40">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="font-label-bold text-[10px] text-primary">
-                        PAYMENT REFERENCE
-                      </div>
-                      <div className="font-mono text-sm font-bold text-text break-all">{txnRef}</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(txnRef, 'Payment reference')}
-                      className="text-primary hover:text-primary-light flex-shrink-0 mt-1"
-                      aria-label="Copy payment reference"
-                    >
-                      <Copy size={16} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+
+                {bankDetails.paymentInstructions ? (
+                  <p className="text-xs text-text-muted mt-3 leading-relaxed">
+                    {bankDetails.paymentInstructions}
+                  </p>
+                ) : null}
+              </>
             )}
 
-            {bankDetails.bankReferenceNote ? (
-              <p className="text-xs text-text-muted mt-3 leading-relaxed">
-                {bankDetails.bankReferenceNote}
-              </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="px-4 py-3 rounded-lg bg-dark-200 border border-outline-variant/30 col-span-2">
+                <div className="font-label-bold text-[10px] text-text-muted mb-1">
+                  PAYMENT REFERENCE (REQUIRED)
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-sm text-primary font-bold break-all">{txnRef}</span>
+                  <button
+                    type="button"
+                    onClick={() => copyText(txnRef, 'Reference')}
+                    className="text-primary flex-shrink-0 p-1"
+                    aria-label="Copy reference"
+                  >
+                    <Copy size={16} />
+                  </button>
+                </div>
+              </div>
+              <div className="px-4 py-3 rounded-lg bg-dark-200 border border-outline-variant/30">
+                <div className="font-label-bold text-[10px] text-text-muted">AMOUNT</div>
+                <div className="font-display font-bold text-lg text-text tabular-nums">
+                  {formatZAR(total)}
+                </div>
+              </div>
+              <div className="px-4 py-3 rounded-lg bg-dark-200 border border-outline-variant/30">
+                <div className="font-label-bold text-[10px] text-text-muted">COMPLETE WITHIN</div>
+                <div
+                  className={`font-display font-bold text-lg tabular-nums ${
+                    expired ? 'text-danger' : 'text-text'
+                  }`}
+                >
+                  {ttlLabel}
+                </div>
+              </div>
+            </div>
+
+            {expired && !configLoading ? (
+              <button
+                type="button"
+                onClick={resetSession}
+                className="mt-3 text-primary font-bold text-sm hover:underline"
+              >
+                Start a new payment session
+              </button>
             ) : null}
 
             {paymentNotReceived ? (
@@ -252,9 +306,9 @@ export default function PaymentModal({ open, onClose, car, qty, total }) {
               >
                 <p className="font-semibold text-warning">Payment not received yet</p>
                 <p className="text-text-muted mt-1 text-xs leading-relaxed">
-                  We have not received your transfer for{' '}
-                  <span className="font-mono text-text">{txnRef}</span>. Complete the payment, then
-                  tap &quot;I have paid&quot; again.
+                  We have not received your transfer for reference{' '}
+                  <span className="font-mono text-text">{txnRef}</span>. Complete the bank transfer,
+                  then tap &quot;I have paid&quot; again.
                 </p>
               </div>
             ) : null}
@@ -262,8 +316,8 @@ export default function PaymentModal({ open, onClose, car, qty, total }) {
             <div className="flex items-center gap-2 mt-5 text-xs text-text-muted">
               <ShieldCheck size={14} className="text-primary flex-shrink-0" />
               <span>
-                Tokens are issued only after your bank transfer is verified — not when you open
-                this screen.
+                Tokens are issued only after your payment is verified — not when you open this
+                screen.
               </span>
             </div>
 
@@ -271,7 +325,7 @@ export default function PaymentModal({ open, onClose, car, qty, total }) {
               <Button
                 block
                 loading={step === 'confirming'}
-                disabled={configLoading || !checkoutReady}
+                disabled={expired || configLoading || !checkoutReady}
                 onClick={handleConfirm}
               >
                 I have paid
@@ -311,8 +365,8 @@ export default function PaymentModal({ open, onClose, car, qty, total }) {
                   ))}
                 </div>
                 <p className="text-xs text-text-muted text-center leading-relaxed mt-4">
-                  On draw day every entered token number is published live on the Winners page.
-                  The winning token will be revealed on stage.
+                  On draw day every entered token number is published live on the Winners page. The
+                  winning token will be revealed on stage.
                 </p>
               </div>
             )}

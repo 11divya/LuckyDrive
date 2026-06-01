@@ -1,54 +1,36 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Form, Input, Spin, App as AntdApp } from 'antd';
-import {
-  SaveOutlined,
-  BankOutlined,
-  ReloadOutlined,
-  LandmarkOutlined,
-} from '@ant-design/icons';
+import { BankOutlined, SaveOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import Button from '../../../components/Button';
 import ApiService from '../../../services/api';
-import { PAYMENT_BANK_DEFAULTS, mergePaymentBank } from '../../../utils/paymentBank';
+import { PAYMENT_BANK_DEFAULTS } from '../../../utils/paymentBank';
 import AnnouncementBannerEditor from './AnnouncementBannerEditor';
-import RecordBankPayment from './RecordBankPayment';
+import RecordUpiPayment from './RecordUpiPayment';
 
-const PREVIEW_REF = 'LD-PREVIEW';
-
-function BankPreview({ bank }) {
-  const previewText = formatBankDetailsText(bank, {
-    amount: 'R 100',
-    reference: PREVIEW_REF,
-  });
+function BankPreview({ values }) {
+  const rows = [
+    ['Bank name', values?.bankName],
+    ['Account holder', values?.accountHolderName],
+    ['Account number', values?.accountNumber],
+    ['Branch / IFSC', values?.branchCode],
+    ['Account type', values?.accountType],
+  ].filter(([, v]) => v);
 
   return (
-    <div className="ld-card h-fit">
-      <p className="font-label-bold text-[10px] text-text-muted mb-3">CHECKOUT PREVIEW</p>
-      <div className="rounded-xl border border-outline-variant/30 bg-dark-200 p-4 space-y-3">
-        <div className="font-label-bold text-[10px] text-primary">PAY BY BANK TRANSFER</div>
-        {[
-          ['Bank', bank.bankName],
-          ['Account holder', bank.accountHolderName],
-          ['Account number', bank.accountNumber],
-          ['Branch code', bank.branchCode],
-          ['Account type', bank.accountType],
-          ['Amount to pay', 'R 100'],
-          ['Payment reference', PREVIEW_REF],
-        ].map(([label, value]) => (
-          <div key={label}>
-            <div className="font-label-bold text-[9px] text-text-muted">{label.toUpperCase()}</div>
-            <div className="text-sm text-text break-all">{value}</div>
-          </div>
-        ))}
-        {bank.bankReferenceNote ? (
-          <p className="text-xs text-text-muted pt-2 border-t border-outline-variant/20">
-            {bank.bankReferenceNote}
-          </p>
-        ) : null}
-      </div>
-      <p className="text-xs text-text-muted text-center mt-3">
-        Customers see these details when buying tickets.
-      </p>
+    <div className="rounded-xl bg-dark-200/80 border border-outline-variant/30 p-4 space-y-3">
+      <p className="font-label-bold text-[10px] text-primary">CUSTOMER CHECKOUT PREVIEW</p>
+      {rows.map(([label, value]) => (
+        <div key={label}>
+          <div className="font-label-bold text-[10px] text-text-muted">{label.toUpperCase()}</div>
+          <div className="text-sm text-text font-medium break-all">{value}</div>
+        </div>
+      ))}
+      {values?.paymentInstructions ? (
+        <p className="text-xs text-text-muted border-t border-outline-variant/20 pt-3 leading-relaxed">
+          {values.paymentInstructions}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -60,18 +42,20 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [announcementBanners, setAnnouncementBanners] = useState([]);
 
-  const bankName = Form.useWatch('bankName', form);
-  const accountHolderName = Form.useWatch('accountHolderName', form);
-  const accountNumber = Form.useWatch('accountNumber', form);
-  const branchCode = Form.useWatch('branchCode', form);
-  const accountType = Form.useWatch('accountType', form);
-  const bankReferenceNote = Form.useWatch('bankReferenceNote', form);
+  const watched = Form.useWatch([], form);
 
   useEffect(() => {
     (async () => {
       try {
         const data = await ApiService.adminGetSettings();
-        form.setFieldsValue(mergePaymentBank(data));
+        form.setFieldsValue({
+          bankName: data.bankName,
+          accountHolderName: data.accountHolderName,
+          accountNumber: data.accountNumber,
+          branchCode: data.branchCode,
+          accountType: data.accountType,
+          paymentInstructions: data.paymentInstructions,
+        });
         setAnnouncementBanners(data.announcementBanners || []);
       } catch (err) {
         message.error(err?.message || 'Failed to load settings');
@@ -81,18 +65,6 @@ export default function AdminSettings() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const previewBank = useMemo(
-    () => ({
-      bankName: bankName || PAYMENT_BANK_DEFAULTS.bankName,
-      accountHolderName: accountHolderName || PAYMENT_BANK_DEFAULTS.accountHolderName,
-      accountNumber: accountNumber || PAYMENT_BANK_DEFAULTS.accountNumber,
-      branchCode: branchCode || PAYMENT_BANK_DEFAULTS.branchCode,
-      accountType: accountType || PAYMENT_BANK_DEFAULTS.accountType,
-      bankReferenceNote: bankReferenceNote ?? PAYMENT_BANK_DEFAULTS.bankReferenceNote,
-    }),
-    [bankName, accountHolderName, accountNumber, branchCode, accountType, bankReferenceNote]
-  );
 
   const handleSave = async () => {
     try {
@@ -105,7 +77,7 @@ export default function AdminSettings() {
         accountNumber: data.accountNumber,
         branchCode: data.branchCode,
         accountType: data.accountType,
-        bankReferenceNote: data.bankReferenceNote,
+        paymentInstructions: data.paymentInstructions,
       });
       message.success('Bank account details updated');
     } catch (err) {
@@ -134,7 +106,7 @@ export default function AdminSettings() {
       <div className="mb-8">
         <h1 className="font-display font-bold text-headline-md">Settings</h1>
         <p className="text-text-muted mt-1">
-          Bank transfer details at checkout, winner-announcement carousel, and payment recording.
+          Bank transfer details at checkout, announcement carousel, and payment recording.
         </p>
       </div>
 
@@ -142,12 +114,12 @@ export default function AdminSettings() {
         <div className="ld-card">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center">
-              <LandmarkOutlined className="text-primary text-lg" />
+              <BankOutlined className="text-primary text-lg" />
             </div>
             <div>
               <h2 className="font-display font-bold text-lg text-text">Bank account details</h2>
               <p className="text-xs text-text-muted">
-                Shown to customers when they pay for tickets via EFT / bank transfer.
+                Shown to customers when they buy tickets — replace with your live account when ready.
               </p>
             </div>
           </div>
@@ -155,87 +127,73 @@ export default function AdminSettings() {
           <Form form={form} layout="vertical" requiredMark={false} className="ld-admin-form">
             <Form.Item
               name="bankName"
-              label={
-                <span className="flex items-center gap-1.5 font-label-bold text-xs text-text-muted">
-                  <BankOutlined /> Bank name
-                </span>
-              }
+              label={<span className="font-label-bold text-xs text-text-muted">BANK NAME</span>}
               rules={[{ required: true, message: 'Bank name is required' }]}
             >
-              <Input
-                placeholder="First National Bank"
-                size="large"
-                className="!bg-dark-200 !border-outline-variant/30"
-              />
+              <Input size="large" className="!bg-dark-200 !border-outline-variant/30" />
             </Form.Item>
 
             <Form.Item
               name="accountHolderName"
               label={
-                <span className="font-label-bold text-xs text-text-muted">Account holder name</span>
+                <span className="font-label-bold text-xs text-text-muted">ACCOUNT HOLDER</span>
               }
-              rules={[{ required: true, message: 'Account holder name is required' }]}
+              rules={[{ required: true, message: 'Account holder is required' }]}
+            >
+              <Input size="large" className="!bg-dark-200 !border-outline-variant/30" />
+            </Form.Item>
+
+            <Form.Item
+              name="accountNumber"
+              label={
+                <span className="font-label-bold text-xs text-text-muted">ACCOUNT NUMBER</span>
+              }
+              rules={[{ required: true, message: 'Account number is required' }]}
             >
               <Input
-                placeholder="LuckyDrive (Pty) Ltd"
                 size="large"
-                className="!bg-dark-200 !border-outline-variant/30"
+                className="!bg-dark-200 !border-outline-variant/30 font-mono"
               />
             </Form.Item>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Form.Item
-                name="accountNumber"
-                label={
-                  <span className="font-label-bold text-xs text-text-muted">Account number</span>
-                }
-                rules={[{ required: true, message: 'Account number is required' }]}
-              >
-                <Input
-                  placeholder="62845678901"
-                  size="large"
-                  className="!bg-dark-200 !border-outline-variant/30 font-mono"
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="branchCode"
-                label={
-                  <span className="font-label-bold text-xs text-text-muted">Branch code</span>
-                }
-                rules={[{ required: true, message: 'Branch code is required' }]}
-              >
-                <Input
-                  placeholder="250655"
-                  size="large"
-                  className="!bg-dark-200 !border-outline-variant/30 font-mono"
-                />
-              </Form.Item>
-            </div>
+            <Form.Item
+              name="branchCode"
+              label={
+                <span className="font-label-bold text-xs text-text-muted">
+                  BRANCH CODE / IFSC
+                </span>
+              }
+              rules={[{ required: true, message: 'Branch code or IFSC is required' }]}
+            >
+              <Input
+                size="large"
+                className="!bg-dark-200 !border-outline-variant/30 font-mono"
+              />
+            </Form.Item>
 
             <Form.Item
               name="accountType"
-              label={<span className="font-label-bold text-xs text-text-muted">Account type</span>}
+              label={
+                <span className="font-label-bold text-xs text-text-muted">ACCOUNT TYPE</span>
+              }
             >
               <Input
-                placeholder="Cheque"
+                placeholder="Cheque, Savings, Current…"
                 size="large"
                 className="!bg-dark-200 !border-outline-variant/30"
               />
             </Form.Item>
 
             <Form.Item
-              name="bankReferenceNote"
+              name="paymentInstructions"
               label={
                 <span className="font-label-bold text-xs text-text-muted">
-                  Instructions for customers
+                  INSTRUCTIONS FOR CUSTOMERS
                 </span>
               }
-              extra="Optional note shown below the account details at checkout."
             >
               <Input.TextArea
-                rows={2}
-                placeholder="Use the transaction reference shown at checkout as your payment reference."
+                rows={3}
                 className="!bg-dark-200 !border-outline-variant/30"
               />
             </Form.Item>
@@ -251,7 +209,9 @@ export default function AdminSettings() {
           </div>
         </div>
 
-        <BankPreview bank={previewBank} />
+        <div className="ld-card h-fit">
+          <BankPreview values={watched} />
+        </div>
       </div>
 
       <div className="mt-10">
@@ -262,7 +222,7 @@ export default function AdminSettings() {
         />
       </div>
 
-      <RecordBankPayment />
+      <RecordUpiPayment />
     </div>
   );
 }

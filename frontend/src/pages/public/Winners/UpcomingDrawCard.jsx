@@ -55,11 +55,12 @@ export default function UpcomingDrawCard({ draw, onChanged }) {
 
         <SalesProgress sold={car.ticketsSold || 0} total={car.totalTickets || 0} />
 
-        <div className="flex items-center justify-between mt-auto pt-2">
-          <span className="text-text-muted text-xs">
+        <div className="flex items-center justify-between gap-4 mt-auto pt-2">
+          <span className="text-text-muted text-xs flex-1 min-w-0">
             All token numbers will be revealed live on draw day.
           </span>
           <Button
+            className="flex-shrink-0"
             size="middle"
             variant={salesOpen ? 'primary' : 'secondary'}
             onClick={() => car.id && navigate(`/cars/${car.id}`)}
